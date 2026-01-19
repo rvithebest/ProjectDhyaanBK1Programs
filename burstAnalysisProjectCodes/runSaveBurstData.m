@@ -34,12 +34,12 @@ thresholdFraction=0.5;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Analyzing occipital electrodes for G2 protocol
 % protocol_list= [{'EO1'} {'EC1'} {'G1'} {'M1'} {'G2'} {'EO2'} {'EC2'} {'M2'}]; 
-curr_protocol='G1';
+curr_protocol='G2';
 gridType='EEG';
 capType = 'actiCap64_UOL';
 [electrodeGroupList,groupNameList] = getElectrodeGroups(gridType,capType);
 occipital_elec=electrodeGroupList{strcmp(groupNameList,'Occipital')};
-parfor i=idx_list(1:24)
+parfor i=idx_list
     subjectName=goodSubjectList{i};
     disp(['Analyzing for subject: ' subjectName]);
     expDate=goodSubjectDate{i};
@@ -81,7 +81,7 @@ parfor i=idx_list(1:24)
 end
 delete(pool);
 % Saving the results
-for i=idx_list(1:24)
+for i=idx_list
     subjectName=goodSubjectList{i};
     expDate=goodSubjectDate{i};
     protocol_name=curr_protocol;
