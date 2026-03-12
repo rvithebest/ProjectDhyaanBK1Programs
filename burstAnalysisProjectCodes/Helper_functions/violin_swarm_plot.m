@@ -31,8 +31,12 @@ function violin_swarm_plot(median_gatherer_sg,median_gatherer_fg)
     % 2-sample unpaired t-test
     % [h,p,ci,stats]=ttest2(median_gatherer_sg,median_gatherer_fg,'VarType','unequal');
     % Rank-sum test (Non-parametric)
-    [p,h,stats] = ranksum(median_gatherer_sg,median_gatherer_fg, 'alpha',0.05, 'tail','right');
-    p
+    if median(median_gatherer_sg)>median(median_gatherer_fg)
+        [p,h,stats] = ranksum(median_gatherer_sg,median_gatherer_fg, 'alpha',0.05, 'tail','right');
+    else
+        [p,h,stats] = ranksum(median_gatherer_sg,median_gatherer_fg, 'alpha',0.05, 'tail','left');
+    end
+    disp(['p-value equals' num2str(p)])
     % display in text box above the plot- significance- format **** (p-value)
     if p<0.0001
         % text(1.5,0.5,['***(',num2str(p),')'],'FontSize',15)

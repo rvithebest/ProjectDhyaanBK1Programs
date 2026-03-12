@@ -10,7 +10,7 @@ function histogram_all_burst(length_all_elec_med,length_all_elec_cont,bin_num)
     plot(bin_centers_sg, count, '-', 'LineWidth', 2, 'Color', 'm', 'Marker', '*');
     hold on;
     plot(bin_centers_fg, count2, '-', 'LineWidth', 2, 'Color',[0.5 0 1], 'Marker', '*');
-    xlabel('Burst lengths (s)')
+    xlabel('Burst length (s)')
     ylabel('Fraction of bursts')
     legend('Meditators','Controls')
     disp(p_length_all)

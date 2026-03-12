@@ -12,5 +12,5 @@ function  scatter_plot_power_burst(power_gatherer_med,power_gatherer_cont,median
     % legend('Meditators','Controls');
     scatter(matched_sg_power, matched_sg_lengths, 50, 'mo','filled');
     scatter(matched_fg_power, matched_fg_lengths, 50, 'o', 'filled', 'MarkerFaceColor', [0.5 0 1]);
-    legend('Meditators','Controls','Meditators (matched)','Controls (matched)')
+    legend('Med','Cont','Med (matched)','Cont (matched)')
 end

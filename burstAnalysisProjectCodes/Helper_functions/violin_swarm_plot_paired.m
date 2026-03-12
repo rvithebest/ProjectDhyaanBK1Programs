@@ -1,7 +1,9 @@
-function violin_swarm_plot_paired(median_gatherer_med,median_gatherer_cont,axis_ori,stat_test)
+function violin_swarm_plot_paired(median_gatherer_med,median_gatherer_cont,axis_ori,stat_test,group)
     data=[(median_gatherer_med)',(median_gatherer_cont)'];
     len=length(median_gatherer_med);
-    group=categorical({'Meditator','Control'});
+    if nargin<5
+        group=categorical({'Meditators','Controls'});
+    end
     group=repmat(group,size(data,1),1);
     violinplot(group,data)
     v=violinplot(group,data);
@@ -29,9 +31,9 @@ function violin_swarm_plot_paired(median_gatherer_med,median_gatherer_cont,axis_
     for ii=1:length(a1)
        hold on;
        if a2(ii,2) > a1(ii,2)
-            lineColor =  [1.00 0.00 1.00 0.3];  % Magenta
-       else
             lineColor =  [0.35, 0, 0.6, 0.3];  % Dark violet
+       else
+            lineColor =  [1.00 0.00 1.00 0.3];  % Magenta
        end
        line([a1(ii,1), a2(ii,1)], [a1(ii,2), a2(ii,2)], 'Color', lineColor, 'LineWidth', 1)
     end
@@ -78,7 +80,7 @@ function violin_swarm_plot_paired(median_gatherer_med,median_gatherer_cont,axis_
         significance='*';
     else
         %text(1.5,0.5,['N.S.(',num2str(p),')'],'FontSize',15)
-        significance='N.S.';
+        significance=['p= ',num2str(round(p,3)),' (N.S.)'];
     end
    % Define x positions for the plots (e.g., positions 1 and 2)
     x_positions = [1, 2];

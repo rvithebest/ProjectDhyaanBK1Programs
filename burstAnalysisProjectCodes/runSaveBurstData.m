@@ -67,6 +67,11 @@ parfor i=idx_list
         if ismember(elec_label,bad_elec) || ~ismember(elec_label,occipital_elec)
             continue;
         end
+        save_folder=fullfile(analysis_data_folder,subjectName,expDate,protocol_name,['Elec' num2str(elec_label)]);
+        save_file=fullfile(save_folder,'MP_results.mat');
+        if exist(save_file,'file')
+            continue;
+        end
         e=load(fullfile(segment_data_folder,'LFP',['elec' num2str(elec_label) '.mat']));
         LFP_data_temp=e.analogData(good_trials,:);
         diffPower=getChangeInPower(LFP_data_temp,timeVals,st_range,bl_range,sg_freq);
@@ -75,34 +80,20 @@ parfor i=idx_list
         [~,~,~,gaborInfo,header,~]=getBurstLengthMP(LFP_data_temp,timeVals,thresholdFactor,displayFlag,st_range,bl_range,sg_freq,num_iterations,adapt_dict_param,dict_size,[],[],uniq_idx);
         gaborInfo_elec_gatherer{k}=gaborInfo;
         header_elec_gatherer{k}=header;
+        save_data_parfor(save_folder,gaborInfo,header);
     end
     gaborInfo_accumulator{i}=gaborInfo_elec_gatherer;
     header_accumulator{i}=header_elec_gatherer;
 end
 delete(pool);
 % Saving the results
-for i=idx_list
-    subjectName=goodSubjectList{i};
-    expDate=goodSubjectDate{i};
-    protocol_name=curr_protocol;
-    [bad_trials, bad_elec]= getBadTrialsAndElectrodes(subjectName,expDate,protocol_name,parent_data_folder,badEyeCondition,badTrialVersion);
-    elec_list=1:64;
-    num_elec=length(elec_list);
-    for k=1:num_elec
-        elec_label=elec_list(k);
-        if ismember(elec_label,bad_elec) || ~ismember(elec_label,occipital_elec)
-            continue;
-        end
-        save_folder=fullfile(analysis_data_folder,subjectName,expDate,protocol_name,['Elec' num2str(elec_label)]);
-        if ~exist(save_folder,'dir')
-            mkdir(save_folder)
-        end
-        save_file=fullfile(save_folder,'MP_results.mat');
-        gaborInfo=gaborInfo_accumulator{i}{k};
-        header=header_accumulator{i}{k};
-        if exist(save_file,'file')
-            continue;
-        end
-        save(save_file,'gaborInfo','header');
+function save_data_parfor(save_folder,gaborInfo,header)
+    if ~exist(save_folder,'dir')
+        mkdir(save_folder)
     end
-end 
+    save_file=fullfile(save_folder,'MP_results.mat');
+    if exist(save_file,'file')
+        return;
+    end
+    save(save_file,'gaborInfo','header');
+end
