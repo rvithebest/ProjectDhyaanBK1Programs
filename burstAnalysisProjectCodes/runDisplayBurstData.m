@@ -27,7 +27,7 @@ power_accumulator=cell(1,length(idx_list));
 curr_protocol='G1';
 % Burst analysis parameters
 [st_range,bl_range,displayFlag,num_iterations,dict_size,adapt_dict_param,...
-sg_freq,thresholdFraction,min_burst_num]=get_MP_params(curr_protocol);
+sg_freq,thresholdFraction,min_burst_num,u_bound]=get_MP_params(curr_protocol);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Analyzing occipital electrodes
 for i=idx_list
@@ -73,7 +73,7 @@ for i=idx_list
                 continue;
             end
             % rejecting burst lengths longer than 1 seconds
-            reject_idx=find((length_temp_sg{ii}')>1);
+            reject_idx=find((length_temp_sg{ii}')>u_bound);
             length_temp_sg{ii}(reject_idx)=[];
             amp_temp_sg{ii}(reject_idx)=[];
             length_temp_all_trials=[length_temp_all_trials, length_temp_sg{ii}'];
@@ -91,10 +91,14 @@ control_list = pairedSubjectNameList(:,2);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 median_length_med=zeros(1,length(meditator_list));
 median_length_cont=zeros(1,length(control_list));
-mean_amplitude_med=zeros(1,length(meditator_list)); 
-mean_amplitude_cont=zeros(1,length(control_list));
+num_bursts_med=zeros(1,length(meditator_list));
+num_bursts_cont=zeros(1,length(control_list));
+median_amplitude_med=zeros(1,length(meditator_list)); 
+median_amplitude_cont=zeros(1,length(control_list));
 mean_power_med=zeros(1,length(meditator_list));
 mean_power_cont=zeros(1,length(control_list));
+entropy_med=zeros(1,length(meditator_list));
+entropy_cont=zeros(1,length(control_list));
 length_all_med=[];
 length_all_cont=[];
 amplitude_all_med=[];
@@ -120,8 +124,12 @@ for i=1:length(meditator_list)
     end
     median_length_med(i)=median(length_accumulator{med_idx});
     median_length_cont(i)=median(length_accumulator{cont_idx});
-    mean_amplitude_med(i)=mean(amplitude_accumulator{med_idx});
-    mean_amplitude_cont(i)=mean(amplitude_accumulator{cont_idx});
+    num_bursts_med(i)=length(length_accumulator{med_idx});
+    num_bursts_cont(i)=length(length_accumulator{cont_idx});
+    median_amplitude_med(i)=median(amplitude_accumulator{med_idx});
+    median_amplitude_cont(i)=median(amplitude_accumulator{cont_idx});
+    entropy_med(i)=compute_entropy(length_accumulator{med_idx});
+    entropy_cont(i)=compute_entropy(length_accumulator{cont_idx});
     length_all_med=[length_all_med, length_accumulator{med_idx}];
     length_all_cont=[length_all_cont, length_accumulator{cont_idx}];
     amplitude_all_med=[amplitude_all_med, amplitude_accumulator{med_idx}];
@@ -133,42 +141,75 @@ end
 % Remove zeros
 median_length_med=median_length_med(median_length_med~=0);
 median_length_cont=median_length_cont(median_length_cont~=0);
-mean_amplitude_med=mean_amplitude_med(mean_amplitude_med~=0);
-mean_amplitude_cont=mean_amplitude_cont(mean_amplitude_cont~=0);
+median_amplitude_med=median_amplitude_med(median_amplitude_med~=0);
+median_amplitude_cont=median_amplitude_cont(median_amplitude_cont~=0);
+entropy_med=entropy_med(entropy_med~=0);
+entropy_cont=entropy_cont(entropy_cont~=0);
 mean_power_med=mean_power_med(mean_power_med~=0);
 mean_power_cont=mean_power_cont(mean_power_cont~=0);
+num_bursts_med=num_bursts_med(num_bursts_med~=0);
+num_bursts_cont=num_bursts_cont(num_bursts_cont~=0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plotting Figure
 f=figure;
 f.WindowState="Maximized";
 plotHandles=getPlotHandles(2,2,[0.08 0.08 0.9 0.85],0.07,0.1,0);
+labels = {'A','B','C','D'};
+x_positions = [0.03, 0.52];
+y_positions = [0.855, 0.375];  % top and bottom rows
+k = 1;
+for j = 1:length(y_positions)
+    for i = 1:length(x_positions)
+        annotation('textbox', ...
+            [x_positions(i), y_positions(j), 0.1, 0.1], ...
+            'String', labels{k}, ...
+            'FontSize', 28, ...
+            'FontWeight', 'Bold', ...
+            'EdgeColor', 'none', ...
+            'FontName', 'Helvetica');
+        k = k + 1;
+    end
+end
 subplot(plotHandles(1,1));
 histogram_all_burst(length_all_med,length_all_cont,10);
 subplot(plotHandles(1,2));
 violin_swarm_plot_paired(median_length_med,median_length_cont,0,0);
 [matched_med_indices,matched_cont_indices]=power_matching_hist(mean_power_med,mean_power_cont);
+% load('M2_phase_matched_idx.mat')
 subplot(plotHandles(2,1));
 scatter_plot_power_burst(mean_power_med,mean_power_cont,median_length_med ...
         ,median_length_cont,matched_med_indices,matched_cont_indices);
-% No significant correlation for both the groupsbadEyeCondition
+% No significant correlation (b/w power and median burst length) for both the groupsbadEyeCondition
 [r_med,p_med]=corr(mean_power_med',median_length_med',"Type","Spearman");
 [r_con,p_con]=corr(mean_power_cont',median_length_cont','Type','Spearman');
+% No significant correlation b/w num bursts and median burst length
 subplot(plotHandles(2,2));
 violin_swarm_plot(median_length_med(matched_med_indices),median_length_cont(matched_cont_indices));
-set_axis_ticks_fontsize(plotHandles,18,15,1);
-set_axis_ticks_fontsize(plotHandles,18,15,2);
-% 'During Meditation (M2)'
-% 'Post Meditation (G2)'
+set_axis_ticks_fontsize(plotHandles,20,18,1);
+set_axis_ticks_fontsize(plotHandles,20,18,2);
+if curr_protocol=="G1"
+    title_str='Pre Meditation (G1)';
+    % save('G1_new_data.mat','median_length_med','median_length_cont','mean_power_med','mean_power_cont','matched_med_indices','matched_cont_indices',...
+    %     'length_all_med','length_all_cont');
+elseif curr_protocol=="M2"
+    title_str='During Meditation (M2)';
+    % save('M2_new_data.mat','median_length_med','median_length_cont','mean_power_med','mean_power_cont','matched_med_indices','matched_cont_indices',...
+    %     'length_all_med','length_all_cont');
+elseif curr_protocol=="G2"
+    title_str='Post Meditation (G2)';
+    % % save('G2_new_data.mat','median_length_med','median_length_cont','mean_power_med','mean_power_cont','matched_med_indices','matched_cont_indices',...
+    %     'length_all_med','length_all_cont');
+end
 annotation('textbox',...
 [0.42 0.92 0.2 0.08],...
-'String',{'Pre Meditation (G1)'},...
+'String',{title_str},...
 'FontWeight','bold',...
 'FontSize',20,...
 'FontName','Helvetica',...
 'EdgeColor',[1 1 1]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Correlation
-[r_con_1,p_con_1]=corr(median_length_cont',mean_amplitude_cont',"Type",'Spearman');
-[r_med_1,p_med_1]=corr(median_length_med',mean_amplitude_med',"Type",'Spearman');
+[r_con_1,p_con_1]=corr(median_length_cont',median_amplitude_cont',"Type",'Spearman');
+[r_med_1,p_med_1]=corr(median_length_med',median_amplitude_med',"Type",'Spearman');
 [r_con_2,p_con_2]=corr(length_all_cont',amplitude_all_cont',"Type",'Spearman');
 [r_med_2,p_med_2]=corr(length_all_med',amplitude_all_med',"Type",'Spearman');
